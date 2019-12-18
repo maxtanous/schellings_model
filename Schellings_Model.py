@@ -1,13 +1,15 @@
 import sys
 import csv
 from Graph import Graph
+import math 
 
 class Schellings_Model:
-    def __init__(self,fileName, thresholdValue,numIterations):
+    def __init__(self,fileName, thresholdValue,numIterations, actualData):
         self.fileName = fileName
         self.thresholdValue = float(thresholdValue)
         self.numIterations = int(numIterations)
         self.Graph = Graph(thresholdValue)
+        self.actualData = {}
 
     def readFile(self):
         rows = []
@@ -24,6 +26,26 @@ class Schellings_Model:
             nodes += [row]
         self.Graph.initNodes(nodes)
 
+    def writeToCsv(self):
+        with open('final-iter.csv', mode='w') as file:
+            csvwriter = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            csvwriter.writerow(['CountyName', 'EducationRate', 'Population'])
+            for node in self.Graph.nodes: 
+                csvwriter.writerow([node.cityName, str(node.educationRate), str(node.population)])
+    
+    
+    def klDivergance(self):
+        klDivergance = 0
+        numCountys = len(self.Graph.nodes)
+        for node in self.Graph.nodes:
+            county = node.cityName
+            educationRate = node.educationRate
+            normalizedRate = educationRate/numCountys
+            currCountyRate = self.actualData.get(county)
+            klDivergance += (normalizedRate * math.log(normalizedRate/currCountyRate))
+        print("Total KL Divergance: ", klDivergance)
+        return klDivergance
+
     def run(self):
         self.readFile()
         i = 0
@@ -31,11 +53,15 @@ class Schellings_Model:
             self.Graph.update()
             self.Graph.plot()
             i += 1
+        #self.klDivergance()
+        self.writeToCsv()
 
 
 fileName = sys.argv[1]
 thresholdValue = sys.argv[2]
 numIterations = sys.argv[3]
 
-schelling = Schellings_Model(fileName,thresholdValue,numIterations)
+actualData = {} # compute data.
+
+schelling = Schellings_Model(fileName,thresholdValue,numIterations, actualData)
 schelling.run()
