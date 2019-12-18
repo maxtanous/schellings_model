@@ -18,7 +18,6 @@ class Schellings_Model:
             # extracting each data row one by one
             for row in csvreader:
                 rows.append(row)
-
         nodes = []
         for row in rows:
             print(row)
@@ -30,6 +29,7 @@ class Schellings_Model:
         i = 0
         while i < self.numIterations:
             self.Graph.update()
+            self.Graph.plot()
             i += 1
 
 

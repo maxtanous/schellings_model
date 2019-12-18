@@ -3,6 +3,8 @@ import math
 import numpy as np
 from scipy import stats
 import statistics
+import networkx as nx
+import matplotlib.pyplot as plt
 
 class Graph:
     def __init__(self,thresholdValue):
@@ -14,8 +16,38 @@ class Graph:
         self.neighbors = []
 
     def plot(self):
-        #Plot our graph
-        print("")
+        G_nx = nx.DiGraph()
+        for node in self.nodes:
+            G_nx.add_node(node.index)
+
+        nodeIndex = 0
+        for neighborSet in self.neighbors:
+            for neighbor in neighborSet:
+                G_nx.add_edge(nodeIndex, neighbor)
+            nodeIndex += 1
+
+        pos = {}
+        sizes = []
+        labels = {}
+        colors = []
+        for node in self.nodes:
+            pos[node.index] = [node.coordinates[0],node.coordinates[1]]
+            sizes += [math.log1p(node.population)*155]
+            labels[node.index] = node.cityName
+            colors += [node.educationRate]
+
+        #pos = nx.shell_layout(G_nx)
+        print(pos)
+
+        #labels = nx.get_edge_attributes(G_nx,'weight')
+        #nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
+        # nodes
+        nx.draw_networkx_nodes(G_nx, pos, node_size=sizes,with_labels=True, node_color = colors)
+        # edges
+        nx.draw_networkx_edges(G_nx, pos, width=1)
+        nx.draw_networkx_labels(G_nx, pos, font_size=7, labels=labels, font_family='sans-serif')
+        plt.title("Maine Education Map")
+        plt.show()
 
     def initNodes(self,nodes):
         for node in nodes:
@@ -37,14 +69,15 @@ class Graph:
     def updatePopulations(self):
         for node in self.nodes:
             print()
-            print("county: ", node.cityName)
+            print("County: ", node.cityName)
             educationValue = node.educationValue
-            print("educationValue: ", educationValue)
+            print("Education Value: ", educationValue)
+            print("Education Rate: ", node.educationRate)
             percentLeaving = self.getPercentLeaving(educationValue)
-            print("percentLeaving: ", percentLeaving)
+            print("PercentLeaving: ", percentLeaving)
             numPeopleLeaving = int(node.educatedPop * percentLeaving)
             newCityIndex = self.getNewCity(node)
-            print("new city: ", self.nodes[newCityIndex].cityName)
+            print("New County: ", self.nodes[newCityIndex].cityName)
             node.updatePop(-numPeopleLeaving)
             self.nodes[newCityIndex].updatePop(numPeopleLeaving)
 
@@ -55,6 +88,7 @@ class Graph:
             mean = statistics.mean(evs)
             z_score = (educationValue-mean)/std
             p_value = stats.norm.sf(abs(z_score))
+            print("p_value: ", p_value)
             delta_p = p_value - educationValue
             if (delta_p < 0):
                 return abs(delta_p)
