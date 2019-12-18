@@ -4,11 +4,10 @@ from Graph import Graph
 import math 
 
 class Schellings_Model:
-    def __init__(self,fileName, thresholdValue,numIterations, actualData):
+    def __init__(self,fileName, numIterations, actualData):
         self.fileName = fileName
-        self.thresholdValue = float(thresholdValue)
         self.numIterations = int(numIterations)
-        self.Graph = Graph(thresholdValue)
+        self.Graph = Graph()
         self.actualData = actualData
 
     def readFile(self):
@@ -22,7 +21,6 @@ class Schellings_Model:
                 rows.append(row)
         nodes = []
         for row in rows:
-            print(row)
             nodes += [row]
         self.Graph.initNodes(nodes)
 
@@ -49,17 +47,18 @@ class Schellings_Model:
     def run(self):
         self.readFile()
         i = 0
+        self.Graph.plot("Maine Education Map (Initial Data 2000)")
         while i < self.numIterations:
             self.Graph.update()
-            #self.Graph.plot()
+            self.Graph.plot("Maine Education Map (Iteration: " + str(i+1) +  ", Local Influence 5x)")
             i += 1
         self.klDivergance()
         self.writeToCsv()
 
 
 fileName = sys.argv[1]
-thresholdValue = sys.argv[2]
 numIterations = sys.argv[3]
+
 
 actualData = {'Androscoggin': 14.8, 'Aroostook': 12.9, 'Cumberland': 28.2, 'Franklin': 16.7, 'Hancock': 19.2,
  'Kennebec': 16.4, 'Knox': 19.7, 'Lincoln': 18.7, 'Oxford': 12.2, 'Penobscot': 16.7, 'Piscataquis': 12.4,
