@@ -3,11 +3,10 @@ import csv
 from Graph import Graph
 
 class Schellings_Model:
-    def __init__(self,fileName, thresholdValue,numIterations):
+    def __init__(self,fileName,numIterations):
         self.fileName = fileName
-        self.thresholdValue = float(thresholdValue)
         self.numIterations = int(numIterations)
-        self.Graph = Graph(thresholdValue)
+        self.Graph = Graph()
 
     def readFile(self):
         rows = []
@@ -20,22 +19,21 @@ class Schellings_Model:
                 rows.append(row)
         nodes = []
         for row in rows:
-            print(row)
             nodes += [row]
         self.Graph.initNodes(nodes)
 
     def run(self):
         self.readFile()
         i = 0
+        self.Graph.plot("Maine Education Map (Initial Data 2000)")
         while i < self.numIterations:
             self.Graph.update()
-            self.Graph.plot()
+            self.Graph.plot("Maine Education Map (Iteration: " + str(i+1) +  ", Local Influence 5x)")
             i += 1
 
 
 fileName = sys.argv[1]
-thresholdValue = sys.argv[2]
 numIterations = sys.argv[3]
 
-schelling = Schellings_Model(fileName,thresholdValue,numIterations)
+schelling = Schellings_Model(fileName,numIterations)
 schelling.run()

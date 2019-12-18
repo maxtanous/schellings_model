@@ -1,8 +1,8 @@
 
 class Node:
-    def __init__(self, index, cityName, population, educatedPop, xcoordinate,ycoordinate):
+    def __init__(self, index, countyName, population, educatedPop, xcoordinate,ycoordinate):
         self.index = int(index)
-        self.cityName = cityName
+        self.countyName = countyName
         self.educatedPop = int(educatedPop)
         self.population = int(population)
         self.educationRate = float(self.educatedPop/self.population)

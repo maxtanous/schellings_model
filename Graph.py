@@ -5,49 +5,16 @@ from scipy import stats
 import statistics
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.colors
 
 class Graph:
-    def __init__(self,thresholdValue):
-        self.localInfluence = 10
-        self.thresholdValue = float(thresholdValue)
+    def __init__(self):
+        self.localInfluence = 5
         #an indexed set of all nodes in graph
         self.nodes = []
+        self.leavingMaineNode = []
         #a 2-D array of neighbors. At the index of a node, will be a list of all its neighbors indexes
         self.neighbors = []
-
-    def plot(self):
-        G_nx = nx.DiGraph()
-        for node in self.nodes:
-            G_nx.add_node(node.index)
-
-        nodeIndex = 0
-        for neighborSet in self.neighbors:
-            for neighbor in neighborSet:
-                G_nx.add_edge(nodeIndex, neighbor)
-            nodeIndex += 1
-
-        pos = {}
-        sizes = []
-        labels = {}
-        colors = []
-        for node in self.nodes:
-            pos[node.index] = [node.coordinates[0],node.coordinates[1]]
-            sizes += [math.log1p(node.population)*155]
-            labels[node.index] = node.cityName
-            colors += [node.educationRate]
-
-        #pos = nx.shell_layout(G_nx)
-        print(pos)
-
-        #labels = nx.get_edge_attributes(G_nx,'weight')
-        #nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
-        # nodes
-        nx.draw_networkx_nodes(G_nx, pos, node_size=sizes,with_labels=True, node_color = colors)
-        # edges
-        nx.draw_networkx_edges(G_nx, pos, width=1)
-        nx.draw_networkx_labels(G_nx, pos, font_size=7, labels=labels, font_family='sans-serif')
-        plt.title("Maine Education Map")
-        plt.show()
 
     def initNodes(self,nodes):
         for node in nodes:
@@ -55,6 +22,7 @@ class Graph:
             self.nodes += [n]
         for node in self.nodes:
             self.neighbors += [self.getClosetCities(node)]
+        self.leavingMaineNode = Node(16, "Leaving Maine", 1, 1, 46.44,-70.5)
 
     def getClosetCities(self,node):
         distances = [self.getDistance(node,nodeTwo) for nodeTwo in  self.nodes]
@@ -68,36 +36,30 @@ class Graph:
 
     def updatePopulations(self):
         for node in self.nodes:
-            print()
-            print("County: ", node.cityName)
-            educationValue = node.educationValue
-            print("Education Value: ", educationValue)
-            print("Education Rate: ", node.educationRate)
-            percentLeaving = self.getPercentLeaving(educationValue)
-            print("PercentLeaving: ", percentLeaving)
+            percentLeaving = self.getPercentLeaving(node)
             numPeopleLeaving = int(node.educatedPop * percentLeaving)
-            newCityIndex = self.getNewCity(node)
-            print("New County: ", self.nodes[newCityIndex].cityName)
-            node.updatePop(-numPeopleLeaving)
-            self.nodes[newCityIndex].updatePop(numPeopleLeaving)
-
-    def getPercentLeaving(self,educationValue):
-        if educationValue < self.thresholdValue:
-            evs = [node.educationValue for node in self.nodes]
-            std = np.std(evs)
-            mean = statistics.mean(evs)
-            z_score = (educationValue-mean)/std
-            p_value = stats.norm.sf(abs(z_score))
-            print("p_value: ", p_value)
-            delta_p = p_value - educationValue
-            if (delta_p < 0):
-                return abs(delta_p)
+            threshold = percentLeaving + node.educationValue
+            newCityIndex = self.getNewCity(node,threshold)
+            if newCityIndex == -1:
+                node.updatePop(-numPeopleLeaving)
+                self.leavingMaineNode.updatePop(numPeopleLeaving)
             else:
-                return 0
+                node.updatePop(-numPeopleLeaving)
+                self.nodes[newCityIndex].updatePop(numPeopleLeaving)
+
+    def getPercentLeaving(self,node):
+        evs = [node.educationValue for node in self.nodes]
+        std = np.std(evs)
+        mean = statistics.mean(evs)
+        z_score = (node.educationValue-mean)/std
+        p_value = stats.norm.sf(abs(z_score))
+        delta_p = p_value - node.educationRate
+        if (delta_p < 0):
+            return abs(delta_p)
         else:
             return 0
 
-    def getNewCity(self,node):
+    def getNewCity(self,node,threshold):
         bestNeighbor = -1
         bestEducationValue = 0
         distances = [self.getDistance(node,nodeTwo) for nodeTwo in  self.nodes]
@@ -107,8 +69,9 @@ class Graph:
         for neighborIndex in neighborIndicis:
             neighbor = self.nodes[neighborIndex]
             educationValue = neighbor.educationValue
-            if educationValue > self.thresholdValue:
+            if educationValue > threshold:
                 return neighborIndex
+        return -1
 
     def getDistance(self,node1,node2):
         x1,y1 = node1.coordinates
@@ -136,3 +99,39 @@ class Graph:
             numEducatedPeople += [neighbor.educatedPop]
         educationValue = (self.localInfluence * node.educatedPop + sum(numEducatedPeople))/sumPopulations
         return educationValue
+
+    def plot(self,title):
+        self.nodes += [self.leavingMaineNode]
+        G_nx = nx.DiGraph()
+        for node in self.nodes:
+            G_nx.add_node(node.index)
+
+        nodeIndex = 0
+        for neighborSet in self.neighbors:
+            for neighbor in neighborSet:
+                G_nx.add_edge(nodeIndex, neighbor)
+            nodeIndex += 1
+        cmap = plt.cm.Blues
+        norm = matplotlib.colors.Normalize(vmin=0, vmax=.6)
+        pos = {}
+        sizes = []
+        labels = {}
+        colors = []
+        for node in self.nodes:
+            pos[node.index] = [node.coordinates[0],node.coordinates[1]]
+            sizes += [math.log1p(node.population)*155]
+            if node.index == 16:
+                labels[node.index] = node.countyName + '\n ' + str(node.population)
+            else:
+                labels[node.index] = node.countyName + '\n ' + str(round(node.educationRate* 100,2) ) + '%'
+            colors += [cmap(norm(node.educationRate))]
+
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        plt.colorbar(sm, label="% Bachelor Degree or Higher")
+        nx.draw_networkx_nodes(G_nx, pos, node_size=sizes,with_labels=True, node_color = colors)
+        # edges
+        nx.draw_networkx_edges(G_nx, pos, width=1)
+        nx.draw_networkx_labels(G_nx, pos, font_size=6, labels=labels,font_family='sans-serif')
+        plt.title(title)
+        plt.show()
+        self.nodes.pop()
