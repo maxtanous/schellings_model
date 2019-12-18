@@ -9,7 +9,7 @@ class Schellings_Model:
         self.thresholdValue = float(thresholdValue)
         self.numIterations = int(numIterations)
         self.Graph = Graph(thresholdValue)
-        self.actualData = {}
+        self.actualData = actualData
 
     def readFile(self):
         rows = []
@@ -40,20 +40,20 @@ class Schellings_Model:
         for node in self.Graph.nodes:
             county = node.cityName
             educationRate = node.educationRate
-            normalizedRate = educationRate/numCountys
-            currCountyRate = self.actualData.get(county)
+            normalizedRate = (educationRate * node.population)/numCountys
+            currCountyRate = self.actualData[county]
             klDivergance += (normalizedRate * math.log(normalizedRate/currCountyRate))
         print("Total KL Divergance: ", klDivergance)
-        return klDivergance
+        
 
     def run(self):
         self.readFile()
         i = 0
         while i < self.numIterations:
             self.Graph.update()
-            self.Graph.plot()
+            #self.Graph.plot()
             i += 1
-        #self.klDivergance()
+        self.klDivergance()
         self.writeToCsv()
 
 
@@ -61,7 +61,9 @@ fileName = sys.argv[1]
 thresholdValue = sys.argv[2]
 numIterations = sys.argv[3]
 
-actualData = {} # compute data.
+actualData = {'Androscoggin': 14.8, 'Aroostook': 12.9, 'Cumberland': 28.2, 'Franklin': 16.7, 'Hancock': 19.2,
+ 'Kennebec': 16.4, 'Knox': 19.7, 'Lincoln': 18.7, 'Oxford': 12.2, 'Penobscot': 16.7, 'Piscataquis': 12.4,
+ 'Sagadahoc': 22, 'Somerset': 11.8, 'Waldo': 19.4, 'York': 20.6, 'Washington': 13.7} # compute data.
 
 schelling = Schellings_Model(fileName,thresholdValue,numIterations, actualData)
 schelling.run()
