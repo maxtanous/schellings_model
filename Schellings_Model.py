@@ -27,6 +27,13 @@ class Schellings_Model:
             nodes += [row]
         self.Graph.initNodes(nodes)
 
+    def writeToCsv(self):
+        with open('final-iter.csv', mode='w') as file:
+            csvwriter = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            csvwriter.writerow(['CountyName', 'EducationRate', 'Population'])
+            for node in self.Graph.nodes: 
+                csvwriter.writerow([node.cityName, str(node.educationRate), str(node.population)])
+    
     
     def klDivergance(self):
         klDivergance = 0
@@ -46,7 +53,8 @@ class Schellings_Model:
         while i < self.numIterations:
             self.Graph.update()
             i += 1
-        self.klDivergance()
+        #self.klDivergance()
+        self.writeToCsv()
 
 
 fileName = sys.argv[1]
