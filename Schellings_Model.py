@@ -45,12 +45,16 @@ class Schellings_Model:
         
 
     def run(self):
+        #read in the file and initialize the counties
         self.readFile()
         i = 0
+        #graph the initial graph
         self.Graph.plot("Maine Education Map (Initial Data 2000)")
         while i < self.numIterations:
+            #at each iteration update the graph
             self.Graph.update()
-            self.Graph.plot("Maine Education Map (Iteration: " + str(i+1) +  ", Local Influence 5x)")
+            #plot the results after each iteration
+            self.Graph.plot("Maine Education Map (Iteration: " + str(i+1) +  ", Local Influence 2x)")
             i += 1
         self.klDivergance()
         self.writeToCsv()

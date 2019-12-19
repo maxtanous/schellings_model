@@ -9,56 +9,81 @@ import matplotlib.colors
 
 class Graph:
     def __init__(self):
-        self.localInfluence = 5
+        self.localInfluence = 2
         #an indexed set of all nodes in graph
         self.nodes = []
         self.leavingMaineNode = []
         #a 2-D array of neighbors. At the index of a node, will be a list of all its neighbors indexes
         self.neighbors = []
 
+    #this function takes CSV data passed in from the Schellings_model class and creates corresponding nodes
     def initNodes(self,nodes):
+        #create all county nodes
         for node in nodes:
             n = Node(*node)
             self.nodes += [n]
+        #create a list of 5 closest neighboring counties
         for node in self.nodes:
-            self.neighbors += [self.getClosetCities(node)]
+            self.neighbors += [self.getClosetCounties(node)]
+        #add aditional node for leaving maine
         self.leavingMaineNode = Node(16, "Leaving Maine", 1, 1, 46.44,-70.5)
 
-    def getClosetCities(self,node):
+    #method will return the 5 closest counties to a node
+    def getClosetCounties(self,node):
+        #get distance between node and all other nodes
         distances = [self.getDistance(node,nodeTwo) for nodeTwo in  self.nodes]
         distances = np.array(distances)
+        #returns the index of the 5 closest nodes
         neighbors = distances.argsort()[:5]
         return neighbors
 
     def update(self):
+        #first recompute all education values
         self.updateEducationValues()
+        #move people around based on computed EV's
         self.updatePopulations()
 
     def updatePopulations(self):
+        #iterate through all nodes (counties)
         for node in self.nodes:
+            #compute the percent of people who will leave
             percentLeaving = self.getPercentLeaving(node)
+            #conver that to a number of people leaving
             numPeopleLeaving = int(node.educatedPop * percentLeaving)
+            #compute a threshold for a new city to move to
             threshold = percentLeaving + node.educationValue
+            #find a new city
             newCityIndex = self.getNewCity(node,threshold)
+            #if new city index = -1, they are leaving the state
             if newCityIndex == -1:
+                #LEAVE MAINE
                 node.updatePop(-numPeopleLeaving)
                 self.leavingMaineNode.updatePop(numPeopleLeaving)
             else:
+                #MOVE COUNTIES WITHIN MAINE
                 node.updatePop(-numPeopleLeaving)
                 self.nodes[newCityIndex].updatePop(numPeopleLeaving)
 
+    #compute the percent of people who will leave the city
     def getPercentLeaving(self,node):
         evs = [node.educationValue for node in self.nodes]
+        #compute std of all education values
         std = np.std(evs)
+        #compute mean ev
         mean = statistics.mean(evs)
+        #compute a z-score
         z_score = (node.educationValue-mean)/std
+        #compute a p_value, expected percent of people who would want to leave
         p_value = stats.norm.sf(abs(z_score))
+        #compute the difference in the p_value and the education rate
         delta_p = p_value - node.educationRate
+        #only return a positive value if if the education rate is higher than expected
         if (delta_p < 0):
             return abs(delta_p)
         else:
             return 0
 
+    #look for the closets city that satisfies a threshold value
     def getNewCity(self,node,threshold):
         bestNeighbor = -1
         bestEducationValue = 0
@@ -92,11 +117,16 @@ class Graph:
             node.updateEV(ev)
 
     def getEducationValue(self,node):
+        #sumPopulations is the sum of the population of a node and its 5 neighbors
         sumPopulations = node.population
+        #the number of educated people in neighbor counties
         numEducatedPeople = []
         for neighbor in self.getNeighbors(node):
+            #add neighbors population to sumPopulations
             sumPopulations += neighbor.population
+            #add the number of educated people in the nieghbor county to sum populations
             numEducatedPeople += [neighbor.educatedPop]
+        #compute education value
         educationValue = (self.localInfluence * node.educatedPop + sum(numEducatedPeople))/sumPopulations
         return educationValue
 
@@ -122,9 +152,10 @@ class Graph:
             sizes += [math.log1p(node.population)*155]
             if node.index == 16:
                 labels[node.index] = node.countyName + '\n ' + str(node.population)
+                colors += [cmap(norm(0.1))]
             else:
                 labels[node.index] = node.countyName + '\n ' + str(round(node.educationRate* 100,2) ) + '%'
-            colors += [cmap(norm(node.educationRate))]
+                colors += [cmap(norm(node.educationRate))]
 
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         plt.colorbar(sm, label="% Bachelor Degree or Higher")
