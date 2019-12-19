@@ -122,9 +122,10 @@ class Graph:
             sizes += [math.log1p(node.population)*155]
             if node.index == 16:
                 labels[node.index] = node.countyName + '\n ' + str(node.population)
+                colors += [cmap(norm(0.1))]
             else:
                 labels[node.index] = node.countyName + '\n ' + str(round(node.educationRate* 100,2) ) + '%'
-            colors += [cmap(norm(node.educationRate))]
+                colors += [cmap(norm(node.educationRate))]
 
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         plt.colorbar(sm, label="% Bachelor Degree or Higher")
